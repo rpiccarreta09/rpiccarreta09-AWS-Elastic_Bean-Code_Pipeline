@@ -5,9 +5,9 @@ phases:
       - echo Logging in to Amazon ECR...
       - echo $CODEBUILD_SOURCE_VERSION
       - echo "Retrieving ECR login password"
-      - PASSWORD=$(aws ecr get-login-password --region $AWS_DEFAULT_REGION)
+      - PASSWORD=$(aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/p4u3k9l4)
       - echo "Logging into Docker with ECR credentials"
-      - REPOSITORY_URI=533267339745.dkr.ecr.us-east-1.amazonaws.com/my-predict-api
+      - REPOSITORY_URI=public.ecr.aws/p4u3k9l4/elasticbean_aws
       - docker login --username AWS --password $PASSWORD $REPOSITORY_URI:latest
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
