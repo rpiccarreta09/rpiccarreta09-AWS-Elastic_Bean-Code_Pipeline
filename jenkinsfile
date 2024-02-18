@@ -1,0 +1,57 @@
+pipeline {
+    // Define que este pipeline puede ejecutarse en cualquier agente disponible
+    agent any
+    // Define variables de entorno utilizables en todo el pipeline
+    parameters {
+        string(name: 'name_container', defaultValue: 'my-model-api-container', description: 'Nombre del docker')
+        string(name: 'name_image', defaultValue: 'my-model-api', description: 'Nombre de la imagen')
+        string(name: 'tag_image', defaultValue: 'latest', description: 'Etiqueta de la imagen')
+    }
+    environment {
+        appName = 'variable'
+    }
+    // Define las etapas del pipeline
+    stages {
+        // Etapa para construir la imagen Docker
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${name_image}:${tag_image} ml-project/."
+                }
+            }
+        }
+        // Etapa para desplegar FastAPI
+        stage('Deploy FastAPI') {
+            steps {
+                script {
+                    // Verifica si el contenedor existe y maneja condicionalmente el despliegue
+                    sh '''
+                    if docker ps -a --format '{{.Names}}' | grep -q ${name_container}; then
+                        echo "Container exists. Removing and re-running..."
+                        docker rm -f ${name_container}; docker run --rm -d --name ${name_container} -p 8000:8000 ${name_image}
+                    else
+                        echo "Container does not exist. Running..."
+                        docker run --rm -d --name ${name_container} -p 8000:8000 ${name_image}
+                    fi
+                    '''
+                }
+            }
+        }
+    }
+    // Define acciones que se ejecutan después de las etapas principales del pipeline
+    post {
+        // Se ejecuta siempre después de las etapas, independientemente del resultado
+        always {
+            deleteDir() // Elimina el directorio de trabajo actual
+            sh "echo 'Cleaning up workspace'"
+        }
+        // Se ejecuta solo si el pipeline fue exitoso
+        success {
+            sh "echo 'Deployment successful'"
+        }
+        // Se ejecuta solo si el pipeline falló
+        failure {
+            sh "echo 'Deployment failed'"
+        }
+    }
+}
